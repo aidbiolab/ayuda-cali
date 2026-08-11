@@ -167,7 +167,7 @@ export default function HomePage() {
                       <div className="font-medium text-sm">{getTipoLabel(p.tipo)}</div>
                       <p className="text-xs text-gray-600 line-clamp-1 mt-0.5">{p.descripcion}</p>
                       <div className="text-xs text-gray-500 mt-1">
-                        {p.receptorNombre} · {p.receptorTelefono}
+                        {p.receptorNombre.split(" ")[0]} ***
                       </div>
                     </div>
                     <span className={`text-white text-[10px] px-2 py-0.5 rounded-full flex-shrink-0 ${getEstadoColor(p.estado)}`}>
