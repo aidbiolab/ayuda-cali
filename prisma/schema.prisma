@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Pedido {
+  id              String   @id @default(cuid())
+  lat             Float
+  lng             Float
+  tipo            String   // agua, comida, medicinas, ropa, rescate, albergue, otro
+  descripcion     String
+  urgencia        String   @default("media") // baja, media, alta, critica
+  // Datos de la persona que RECIBE la ayuda
+  receptorNombre  String
+  receptorTelefono String
+  receptorNotas   String?
+  // Datos de quien reporta (opcional)
+  reportadorNombre String?
+  reportadorTelefono String?
+  // Estado y voluntario
+  estado          String   @default("abierto") // abierto, tomado, en_camino, completado, cancelado
+  voluntarioNombre String?
+  voluntarioTelefono String?
+  tomadoAt        DateTime?
+  completadoAt    DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([estado])
+  @@index([tipo])
+  @@index([lat, lng])
+}
+
+model ZonaCritica {
+  id          String   @id @default(cuid())
+  nombre      String
+  lat         Float
+  lng         Float
+  descripcion String?
+  tipo        String   @default("colapso") // colapso, hospital, comuna, otro
+  createdAt   DateTime @default(now())
+}
