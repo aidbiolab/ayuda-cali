@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, CircleMarker } from "react-leaflet";
 import L from "leaflet";
 import { Pedido, ZonaCritica } from "@prisma/client";
-import { getTipoLabel, getEstadoColor, TIPOS_AYUDA, URGENCIAS, ESTADOS } from "@/lib/utils";
+import { getTipoLabel, getEstadoColor, ESTADOS } from "@/lib/utils";
 
 // Fix default marker icons in Next.js
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -23,15 +23,6 @@ const redIcon = new L.Icon({
   shadowSize: [41, 41],
 });
 
-const orangeIcon = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
 const blueIcon = new L.Icon({
   iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
@@ -43,6 +34,15 @@ const blueIcon = new L.Icon({
 
 const greenIcon = new L.Icon({
   iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+const orangeIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png",
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41],
@@ -77,7 +77,7 @@ function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number
   return null;
 }
 
-export default function Map({ pedidos, zonas, onMapClick, onPedidoClick, selectedPedidoId }: MapProps) {
+export default function Map({ pedidos, zonas, onMapClick, onPedidoClick }: MapProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -135,7 +135,7 @@ export default function Map({ pedidos, zonas, onMapClick, onPedidoClick, selecte
         </CircleMarker>
       ))}
 
-      {/* Pedidos de ayuda */}
+      {/* Pedidos de ayuda - SIN mostrar teléfonos públicamente */}
       {pedidos.map((pedido) => (
         <Marker
           key={pedido.id}
@@ -153,12 +153,13 @@ export default function Map({ pedidos, zonas, onMapClick, onPedidoClick, selecte
               <div className={`inline-block text-xs text-white px-2 py-0.5 rounded mb-2 ${getEstadoColor(pedido.estado)}`}>
                 {ESTADOS.find(e => e.value === pedido.estado)?.label}
               </div>
-              <p className="text-gray-700 text-xs mb-2 line-clamp-2">{pedido.descripcion}</p>
-              <div className="text-xs space-y-1 border-t pt-2">
-                <div><strong>Receptor:</strong> {pedido.receptorNombre}</div>
-                <div><strong>Tel:</strong> {pedido.receptorTelefono}</div>
+              <p className="text-gray-700 text-xs mb-2 line-clamp-3">{pedido.descripcion}</p>
+              
+              {/* Solo mostramos nombre parcial y sin teléfono */}
+              <div className="text-xs text-gray-500 border-t pt-2">
+                <div>Persona afectada: {pedido.receptorNombre.split(" ")[0]} ***</div>
                 {pedido.voluntarioNombre && (
-                  <div className="text-blue-700"><strong>Voluntario:</strong> {pedido.voluntarioNombre}</div>
+                  <div className="text-blue-700 mt-1">Voluntario asignado</div>
                 )}
               </div>
               <button
