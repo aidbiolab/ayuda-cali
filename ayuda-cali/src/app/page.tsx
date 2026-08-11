@@ -5,8 +5,9 @@ import dynamic from "next/dynamic";
 import { Pedido, ZonaCritica } from "@prisma/client";
 import PedidoForm from "@/components/PedidoForm";
 import PedidoDetail from "@/components/PedidoDetail";
-import { Plus, List, Map as MapIcon, RefreshCw } from "lucide-react";
-import { getTipoLabel, getEstadoColor, ESTADOS } from "@/lib/utils";
+import SeguirPedido from "@/components/SeguirPedido";
+import { List, Map as MapIcon, RefreshCw, Search } from "lucide-react";
+import { getTipoLabel, getEstadoColor, ESTADOS, primerNombre } from "@/lib/utils";
 
 const Map = dynamic(() => import("@/components/Map"), {
   ssr: false,
@@ -24,6 +25,7 @@ export default function HomePage() {
   const [view, setView] = useState<"map" | "list">("map");
   const [newPedidoCoords, setNewPedidoCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
+  const [showSeguir, setShowSeguir] = useState(false);
   const [filterEstado, setFilterEstado] = useState<string>("");
 
   const fetchData = useCallback(async () => {
@@ -45,18 +47,19 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchData();
-    // Auto-refresh cada 30 segundos
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
   const handleMapClick = (lat: number, lng: number) => {
     setSelectedPedido(null);
+    setShowSeguir(false);
     setNewPedidoCoords({ lat, lng });
   };
 
   const handlePedidoClick = (pedido: Pedido) => {
     setNewPedidoCoords(null);
+    setShowSeguir(false);
     setSelectedPedido(pedido);
   };
 
@@ -77,10 +80,13 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={fetchData}
+              onClick={() => { setShowSeguir(true); setSelectedPedido(null); setNewPedidoCoords(null); }}
               className="p-2 hover:bg-red-600 rounded-full"
-              title="Actualizar"
+              title="Seguir mi pedido"
             >
+              <Search size={18} />
+            </button>
+            <button onClick={fetchData} className="p-2 hover:bg-red-600 rounded-full" title="Actualizar">
               <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
             </button>
             <div className="bg-red-800 text-xs font-bold px-2.5 py-1 rounded-full">
@@ -119,12 +125,10 @@ export default function HomePage() {
               zonas={zonas}
               onMapClick={handleMapClick}
               onPedidoClick={handlePedidoClick}
-              selectedPedidoId={selectedPedido?.id}
             />
           </div>
         ) : (
           <div className="h-full overflow-y-auto p-3 space-y-2">
-            {/* Filter */}
             <div className="flex gap-2 overflow-x-auto pb-2">
               <button
                 onClick={() => setFilterEstado("")}
@@ -156,10 +160,7 @@ export default function HomePage() {
               filteredPedidos.map((p) => (
                 <button
                   key={p.id}
-                  onClick={() => {
-                    setSelectedPedido(p);
-                    setView("map");
-                  }}
+                  onClick={() => { setSelectedPedido(p); setView("map"); }}
                   className="w-full text-left bg-white rounded-xl p-3 shadow-sm border border-gray-100 hover:border-red-200 transition"
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -167,7 +168,8 @@ export default function HomePage() {
                       <div className="font-medium text-sm">{getTipoLabel(p.tipo)}</div>
                       <p className="text-xs text-gray-600 line-clamp-1 mt-0.5">{p.descripcion}</p>
                       <div className="text-xs text-gray-500 mt-1">
-                        {p.receptorNombre.split(" ")[0]} ***
+                        {primerNombre(p.receptorNombre)} ***
+                        {p.voluntarioNombre && ` · Vol: ${primerNombre(p.voluntarioNombre)}`}
                       </div>
                     </div>
                     <span className={`text-white text-[10px] px-2 py-0.5 rounded-full flex-shrink-0 ${getEstadoColor(p.estado)}`}>
@@ -180,10 +182,9 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Floating action button for new request on map */}
-        {view === "map" && !newPedidoCoords && !selectedPedido && (
+        {view === "map" && !newPedidoCoords && !selectedPedido && !showSeguir && (
           <div className="absolute bottom-6 right-4 z-10">
-            <div className="bg-white rounded-full shadow-lg px-4 py-2 text-xs text-gray-600 mb-2 text-center">
+            <div className="bg-white rounded-full shadow-lg px-4 py-2 text-xs text-gray-600 text-center">
               Toca el mapa para pedir ayuda
             </div>
           </div>
@@ -210,11 +211,16 @@ export default function HomePage() {
             <PedidoDetail
               pedido={selectedPedido}
               onClose={() => setSelectedPedido(null)}
-              onUpdate={() => {
-                fetchData();
-                setSelectedPedido(null);
-              }}
+              onUpdate={() => { fetchData(); setSelectedPedido(null); }}
             />
+          </div>
+        </div>
+      )}
+
+      {showSeguir && (
+        <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setShowSeguir(false)}>
+          <div onClick={(e) => e.stopPropagation()}>
+            <SeguirPedido onClose={() => setShowSeguir(false)} />
           </div>
         </div>
       )}

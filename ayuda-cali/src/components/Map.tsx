@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, CircleMarker } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, CircleMarker, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import { Pedido, ZonaCritica } from "@prisma/client";
-import { getTipoLabel, getEstadoColor, ESTADOS } from "@/lib/utils";
+import { getTipoLabel, getEstadoColor, ESTADOS, etiquetaVoluntario, primerNombre } from "@/lib/utils";
 
-// Fix default marker icons in Next.js
+// Fix default marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -17,37 +17,22 @@ L.Icon.Default.mergeOptions({
 const redIcon = new L.Icon({
   iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
+  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
 });
-
 const blueIcon = new L.Icon({
   iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
+  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
 });
-
 const greenIcon = new L.Icon({
   iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
+  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
 });
-
 const orangeIcon = new L.Icon({
   iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png",
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
+  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
 });
 
 function getIconForEstado(estado: string) {
@@ -65,7 +50,6 @@ interface MapProps {
   zonas: ZonaCritica[];
   onMapClick: (lat: number, lng: number) => void;
   onPedidoClick: (pedido: Pedido) => void;
-  selectedPedidoId?: string | null;
 }
 
 function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
@@ -110,18 +94,13 @@ export default function Map({ pedidos, zonas, onMapClick, onPedidoClick }: MapPr
 
       <MapClickHandler onMapClick={onMapClick} />
 
-      {/* Zonas críticas pre-cargadas */}
+      {/* Zonas críticas */}
       {zonas.map((zona) => (
         <CircleMarker
           key={zona.id}
           center={[zona.lat, zona.lng]}
           radius={18}
-          pathOptions={{
-            color: "#991b1b",
-            fillColor: "#ef4444",
-            fillOpacity: 0.35,
-            weight: 2,
-          }}
+          pathOptions={{ color: "#991b1b", fillColor: "#ef4444", fillOpacity: 0.35, weight: 2 }}
         >
           <Popup>
             <div className="text-sm min-w-[180px]">
@@ -135,43 +114,47 @@ export default function Map({ pedidos, zonas, onMapClick, onPedidoClick }: MapPr
         </CircleMarker>
       ))}
 
-      {/* Pedidos de ayuda - SIN mostrar teléfonos públicamente */}
-      {pedidos.map((pedido) => (
-        <Marker
-          key={pedido.id}
-          position={[pedido.lat, pedido.lng]}
-          icon={getIconForEstado(pedido.estado)}
-          eventHandlers={{
-            click: () => onPedidoClick(pedido),
-          }}
-        >
-          <Popup>
-            <div className="text-sm min-w-[200px]">
-              <div className="font-semibold text-base mb-1">
-                {getTipoLabel(pedido.tipo)}
+      {/* Pedidos */}
+      {pedidos.map((pedido) => {
+        const etiqueta = etiquetaVoluntario(pedido);
+        return (
+          <Marker
+            key={pedido.id}
+            position={[pedido.lat, pedido.lng]}
+            icon={getIconForEstado(pedido.estado)}
+            eventHandlers={{ click: () => onPedidoClick(pedido) }}
+          >
+            {/* Etiqueta permanente visible sin click */}
+            {etiqueta && (
+              <Tooltip permanent direction="top" offset={[0, -35]} className="volunteer-label">
+                <span className="text-xs font-semibold whitespace-nowrap">{etiqueta}</span>
+              </Tooltip>
+            )}
+
+            <Popup>
+              <div className="text-sm min-w-[200px]">
+                <div className="font-semibold text-base mb-1">{getTipoLabel(pedido.tipo)}</div>
+                <div className={`inline-block text-xs text-white px-2 py-0.5 rounded mb-2 ${getEstadoColor(pedido.estado)}`}>
+                  {ESTADOS.find(e => e.value === pedido.estado)?.label}
+                </div>
+                <p className="text-gray-700 text-xs mb-2 line-clamp-3">{pedido.descripcion}</p>
+                <div className="text-xs text-gray-500 border-t pt-2">
+                  <div>Persona afectada: {primerNombre(pedido.receptorNombre)} ***</div>
+                  {pedido.voluntarioNombre && (
+                    <div className="text-blue-700 mt-1">Voluntario: {primerNombre(pedido.voluntarioNombre)}</div>
+                  )}
+                </div>
+                <button
+                  onClick={() => onPedidoClick(pedido)}
+                  className="mt-2 w-full bg-red-600 text-white text-xs py-1.5 rounded font-medium"
+                >
+                  Ver / Gestionar
+                </button>
               </div>
-              <div className={`inline-block text-xs text-white px-2 py-0.5 rounded mb-2 ${getEstadoColor(pedido.estado)}`}>
-                {ESTADOS.find(e => e.value === pedido.estado)?.label}
-              </div>
-              <p className="text-gray-700 text-xs mb-2 line-clamp-3">{pedido.descripcion}</p>
-              
-              {/* Solo mostramos nombre parcial y sin teléfono */}
-              <div className="text-xs text-gray-500 border-t pt-2">
-                <div>Persona afectada: {pedido.receptorNombre.split(" ")[0]} ***</div>
-                {pedido.voluntarioNombre && (
-                  <div className="text-blue-700 mt-1">Voluntario asignado</div>
-                )}
-              </div>
-              <button
-                onClick={() => onPedidoClick(pedido)}
-                className="mt-2 w-full bg-red-600 text-white text-xs py-1.5 rounded font-medium"
-              >
-                Ver / Gestionar
-              </button>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
+            </Popup>
+          </Marker>
+        );
+      })}
     </MapContainer>
   );
 }
