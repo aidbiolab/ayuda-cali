@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Pedido } from "@prisma/client";
 import { getTipoLabel, ESTADOS, getEstadoColor } from "@/lib/utils";
-import { X, Phone, User, MapPin } from "lucide-react";
+import { X, Phone, User } from "lucide-react";
 
 interface PedidoDetailProps {
   pedido: Pedido;
@@ -17,6 +17,8 @@ export default function PedidoDetail({ pedido, onClose, onUpdate }: PedidoDetail
   const [voluntarioNombre, setVoluntarioNombre] = useState("");
   const [voluntarioTelefono, setVoluntarioTelefono] = useState("");
   const [error, setError] = useState("");
+
+  const isClaimed = pedido.estado !== "abierto";
 
   const handleClaim = async () => {
     if (!voluntarioNombre.trim() || !voluntarioTelefono.trim()) {
@@ -77,21 +79,35 @@ export default function PedidoDetail({ pedido, onClose, onUpdate }: PedidoDetail
 
       <p className="text-sm text-gray-700 mb-4">{pedido.descripcion}</p>
 
-      {/* Receptor */}
+      {/* Contacto del receptor - SOLO se muestra completo después de tomar el pedido */}
       <div className="bg-gray-50 rounded-lg p-3 mb-3 space-y-2">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Persona que recibe la ayuda</h3>
-        <div className="flex items-center gap-2 text-sm">
-          <User size={16} className="text-gray-400" />
-          <span className="font-medium">{pedido.receptorNombre}</span>
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          <Phone size={16} className="text-gray-400" />
-          <a href={`tel:${pedido.receptorTelefono}`} className="text-blue-600 font-medium">
-            {pedido.receptorTelefono}
-          </a>
-        </div>
-        {pedido.receptorNotas && (
-          <p className="text-xs text-gray-600 pl-6">{pedido.receptorNotas}</p>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          Persona que recibe la ayuda
+        </h3>
+
+        {isClaimed ? (
+          <>
+            <div className="flex items-center gap-2 text-sm">
+              <User size={16} className="text-gray-400" />
+              <span className="font-medium">{pedido.receptorNombre}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Phone size={16} className="text-gray-400" />
+              <a href={`tel:${pedido.receptorTelefono}`} className="text-blue-600 font-medium">
+                {pedido.receptorTelefono}
+              </a>
+            </div>
+            {pedido.receptorNotas && (
+              <p className="text-xs text-gray-600 pl-6">{pedido.receptorNotas}</p>
+            )}
+          </>
+        ) : (
+          <div className="text-sm text-gray-600">
+            <p className="font-medium">{pedido.receptorNombre.split(" ")[0]} ***</p>
+            <p className="text-xs mt-1 text-amber-700">
+              Los datos de contacto se revelan al tomar el pedido (para proteger la privacidad).
+            </p>
+          </div>
         )}
       </div>
 
@@ -100,9 +116,11 @@ export default function PedidoDetail({ pedido, onClose, onUpdate }: PedidoDetail
         <div className="bg-blue-50 rounded-lg p-3 mb-3 space-y-1">
           <h3 className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Voluntario asignado</h3>
           <div className="text-sm font-medium">{pedido.voluntarioNombre}</div>
-          <a href={`tel:${pedido.voluntarioTelefono}`} className="text-sm text-blue-600">
-            {pedido.voluntarioTelefono}
-          </a>
+          {pedido.voluntarioTelefono && (
+            <a href={`tel:${pedido.voluntarioTelefono}`} className="text-sm text-blue-600">
+              {pedido.voluntarioTelefono}
+            </a>
+          )}
         </div>
       )}
 
@@ -119,6 +137,9 @@ export default function PedidoDetail({ pedido, onClose, onUpdate }: PedidoDetail
       {showClaimForm && (
         <div className="space-y-3 border-t pt-3">
           <h3 className="text-sm font-semibold">Tus datos como voluntario</h3>
+          <p className="text-xs text-gray-500">
+            Al tomar el pedido se te mostrarán los datos de contacto de la persona afectada.
+          </p>
           <input
             type="text"
             placeholder="Tu nombre completo *"
@@ -146,7 +167,7 @@ export default function PedidoDetail({ pedido, onClose, onUpdate }: PedidoDetail
               disabled={loading}
               className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
             >
-              {loading ? "..." : "Confirmar"}
+              {loading ? "..." : "Confirmar y ver contacto"}
             </button>
           </div>
         </div>
