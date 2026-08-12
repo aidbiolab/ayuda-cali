@@ -6,7 +6,7 @@ import { Pedido, ZonaCritica } from "@prisma/client";
 import PedidoForm from "@/components/PedidoForm";
 import PedidoDetail from "@/components/PedidoDetail";
 import SeguirPedido from "@/components/SeguirPedido";
-import { List, Map as MapIcon, RefreshCw, Search, LocateFixed } from "lucide-react";
+import { List, Map as MapIcon, RefreshCw, Search, LocateFixed, Info, X } from "lucide-react";
 import { getTipoLabel, getEstadoColor, ESTADOS, primerNombre } from "@/lib/utils";
 
 const Map = dynamic(() => import("@/components/Map"), {
@@ -26,6 +26,7 @@ export default function HomePage() {
   const [newPedidoCoords, setNewPedidoCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
   const [showSeguir, setShowSeguir] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const [filterEstado, setFilterEstado] = useState<string>("");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [flyToUser, setFlyToUser] = useState(false);
@@ -57,12 +58,14 @@ export default function HomePage() {
   const handleMapClick = (lat: number, lng: number) => {
     setSelectedPedido(null);
     setShowSeguir(false);
+    setShowInfo(false);
     setNewPedidoCoords({ lat, lng });
   };
 
   const handlePedidoClick = (pedido: Pedido) => {
     setNewPedidoCoords(null);
     setShowSeguir(false);
+    setShowInfo(false);
     setSelectedPedido(pedido);
   };
 
@@ -111,10 +114,17 @@ export default function HomePage() {
       <header className="bg-red-700 text-white px-4 py-3 shadow-md z-20 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold leading-tight">Ayuda Cali</h1>
-            <p className="text-xs text-red-100">Terremoto 10 Ago 2026 · Mapa de ayuda</p>
+            <h1 className="text-lg font-bold leading-tight">Aidbio · Ayuda Cali</h1>
+            <p className="text-xs text-red-100">Terremoto 10 Ago 2026 · Mapa de ayudas</p>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => { setShowInfo(true); setSelectedPedido(null); setNewPedidoCoords(null); setShowSeguir(false); }}
+              className="p-2 hover:bg-red-600 rounded-full"
+              title="Cómo funciona"
+            >
+              <Info size={18} />
+            </button>
             <button
               onClick={locateMe}
               className="p-2 hover:bg-red-600 rounded-full"
@@ -123,7 +133,7 @@ export default function HomePage() {
               <LocateFixed size={18} className={locating ? "animate-pulse" : ""} />
             </button>
             <button
-              onClick={() => { setShowSeguir(true); setSelectedPedido(null); setNewPedidoCoords(null); }}
+              onClick={() => { setShowSeguir(true); setSelectedPedido(null); setNewPedidoCoords(null); setShowInfo(false); }}
               className="p-2 hover:bg-red-600 rounded-full"
               title="Seguir mi pedido"
             >
@@ -132,8 +142,8 @@ export default function HomePage() {
             <button onClick={fetchData} className="p-2 hover:bg-red-600 rounded-full" title="Actualizar">
               <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
             </button>
-            <div className="bg-red-800 text-xs font-bold px-2.5 py-1 rounded-full">
-              {abiertos} abiertos
+            <div className="bg-red-800 text-xs font-bold px-2.5 py-1 rounded-full ml-1">
+              {abiertos}
             </div>
           </div>
         </div>
@@ -227,8 +237,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Botones flotantes en el mapa */}
-        {view === "map" && !newPedidoCoords && !selectedPedido && !showSeguir && (
+        {view === "map" && !newPedidoCoords && !selectedPedido && !showSeguir && !showInfo && (
           <div className="absolute bottom-6 right-4 z-10 flex flex-col gap-2 items-end">
             {userLocation && (
               <button
@@ -275,6 +284,69 @@ export default function HomePage() {
         <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setShowSeguir(false)}>
           <div onClick={(e) => e.stopPropagation()}>
             <SeguirPedido onClose={() => setShowSeguir(false)} />
+          </div>
+        </div>
+      )}
+
+      {/* Info / Cómo funciona */}
+      {showInfo && (
+        <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setShowInfo(false)}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bottom-sheet safe-bottom p-5 max-h-[85vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">Cómo funciona</h2>
+              <button onClick={() => setShowInfo(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-5 text-sm text-gray-700">
+              <div>
+                <h3 className="font-semibold text-red-700 mb-1.5">¿Necesitas ayuda?</h3>
+                <ol className="list-decimal list-inside space-y-1 text-gray-600">
+                  <li>Toca el mapa en el lugar exacto (o usa el icono de ubicación).</li>
+                  <li>Llena el formulario con los datos de quien recibe la ayuda.</li>
+                  <li>Los <strong>últimos 4 números de tu celular</strong> serán tu código de seguimiento.</li>
+                </ol>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-blue-700 mb-1.5">¿Eres voluntario?</h3>
+                <ol className="list-decimal list-inside space-y-1 text-gray-600">
+                  <li>Busca en el mapa o en la lista las solicitudes abiertas.</li>
+                  <li>Selecciona un pedido y toca <strong>“Tomar este pedido”</strong>.</li>
+                  <li>Ingresa tus datos para ver el contacto de la persona.</li>
+                  <li>Actualiza el estado: marca <strong>“En camino”</strong> y luego <strong>“Completado”</strong>.</li>
+                </ol>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                <p className="text-xs text-gray-600">
+                  <strong>Cada punto es una oportunidad para apoyarnos.</strong>
+                </p>
+                <p className="text-xs text-gray-600">
+                  <strong>Responsabilidad:</strong> usa la herramienta con honestidad y respeto.
+                </p>
+                <p className="text-xs text-gray-600">
+                  <strong>Privacidad:</strong> los datos de contacto son confidenciales y solo se revelan a las personas involucradas.
+                </p>
+              </div>
+
+              <div className="text-center pt-2 border-t">
+                <p className="text-sm font-medium text-gray-800">¡Juntos somos más fuertes!</p>
+                <p className="text-sm text-red-700 font-semibold">Cali se levanta</p>
+                <a
+                  href="https://www.aidbio.com.co"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 underline mt-1 inline-block"
+                >
+                  www.aidbio.com.co
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       )}

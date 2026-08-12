@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Ayuda Cali | Mapa de Ayuda Terremoto",
+  title: "Aidbio · Ayuda Cali | Mapa de ayudas",
   description: "Conecta pedidos de ayuda con voluntarios tras el terremoto de Cali - Agosto 2026",
   manifest: "/manifest.json",
 };
