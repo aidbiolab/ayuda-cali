@@ -6,7 +6,7 @@ import { Pedido, ZonaCritica } from "@prisma/client";
 import PedidoForm from "@/components/PedidoForm";
 import PedidoDetail from "@/components/PedidoDetail";
 import SeguirPedido from "@/components/SeguirPedido";
-import { List, Map as MapIcon, RefreshCw, Search } from "lucide-react";
+import { List, Map as MapIcon, RefreshCw, Search, LocateFixed } from "lucide-react";
 import { getTipoLabel, getEstadoColor, ESTADOS, primerNombre } from "@/lib/utils";
 
 const Map = dynamic(() => import("@/components/Map"), {
@@ -27,6 +27,9 @@ export default function HomePage() {
   const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
   const [showSeguir, setShowSeguir] = useState(false);
   const [filterEstado, setFilterEstado] = useState<string>("");
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [flyToUser, setFlyToUser] = useState(false);
+  const [locating, setLocating] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -63,6 +66,39 @@ export default function HomePage() {
     setSelectedPedido(pedido);
   };
 
+  const locateMe = () => {
+    if (!navigator.geolocation) {
+      alert("Tu navegador no soporta geolocalización");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(loc);
+        setFlyToUser(true);
+        setTimeout(() => setFlyToUser(false), 1500);
+        setLocating(false);
+      },
+      (err) => {
+        console.error(err);
+        alert("No se pudo obtener tu ubicación. Revisa los permisos del navegador.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const createAtMyLocation = () => {
+    if (userLocation) {
+      setNewPedidoCoords(userLocation);
+      setSelectedPedido(null);
+      setShowSeguir(false);
+    } else {
+      locateMe();
+    }
+  };
+
   const filteredPedidos = filterEstado
     ? pedidos.filter((p) => p.estado === filterEstado)
     : pedidos;
@@ -78,7 +114,14 @@ export default function HomePage() {
             <h1 className="text-lg font-bold leading-tight">Ayuda Cali</h1>
             <p className="text-xs text-red-100">Terremoto 10 Ago 2026 · Mapa de ayuda</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={locateMe}
+              className="p-2 hover:bg-red-600 rounded-full"
+              title="Mi ubicación"
+            >
+              <LocateFixed size={18} className={locating ? "animate-pulse" : ""} />
+            </button>
             <button
               onClick={() => { setShowSeguir(true); setSelectedPedido(null); setNewPedidoCoords(null); }}
               className="p-2 hover:bg-red-600 rounded-full"
@@ -125,6 +168,8 @@ export default function HomePage() {
               zonas={zonas}
               onMapClick={handleMapClick}
               onPedidoClick={handlePedidoClick}
+              userLocation={userLocation}
+              flyToUser={flyToUser}
             />
           </div>
         ) : (
@@ -182,8 +227,17 @@ export default function HomePage() {
           </div>
         )}
 
+        {/* Botones flotantes en el mapa */}
         {view === "map" && !newPedidoCoords && !selectedPedido && !showSeguir && (
-          <div className="absolute bottom-6 right-4 z-10">
+          <div className="absolute bottom-6 right-4 z-10 flex flex-col gap-2 items-end">
+            {userLocation && (
+              <button
+                onClick={createAtMyLocation}
+                className="bg-blue-600 text-white text-xs font-medium px-3 py-2 rounded-full shadow-lg"
+              >
+                Pedir ayuda aquí
+              </button>
+            )}
             <div className="bg-white rounded-full shadow-lg px-4 py-2 text-xs text-gray-600 text-center">
               Toca el mapa para pedir ayuda
             </div>

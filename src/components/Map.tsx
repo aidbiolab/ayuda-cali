@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, CircleMarker, Tooltip } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, CircleMarker, Tooltip, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Pedido, ZonaCritica } from "@prisma/client";
 import { getTipoLabel, getEstadoColor, ESTADOS, etiquetaVoluntario, primerNombre } from "@/lib/utils";
@@ -35,6 +35,13 @@ const orangeIcon = new L.Icon({
   iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
 });
 
+// Icono de ubicación actual (azul)
+const myLocationIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
+});
+
 function getIconForEstado(estado: string) {
   switch (estado) {
     case "abierto": return redIcon;
@@ -50,6 +57,8 @@ interface MapProps {
   zonas: ZonaCritica[];
   onMapClick: (lat: number, lng: number) => void;
   onPedidoClick: (pedido: Pedido) => void;
+  userLocation?: { lat: number; lng: number } | null;
+  flyToUser?: boolean;
 }
 
 function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
@@ -61,7 +70,17 @@ function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number
   return null;
 }
 
-export default function Map({ pedidos, zonas, onMapClick, onPedidoClick }: MapProps) {
+function FlyToLocation({ location, active }: { location: { lat: number; lng: number } | null; active: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    if (active && location) {
+      map.flyTo([location.lat, location.lng], 16, { duration: 1.2 });
+    }
+  }, [active, location, map]);
+  return null;
+}
+
+export default function Map({ pedidos, zonas, onMapClick, onPedidoClick, userLocation, flyToUser }: MapProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -93,6 +112,7 @@ export default function Map({ pedidos, zonas, onMapClick, onPedidoClick }: MapPr
       />
 
       <MapClickHandler onMapClick={onMapClick} />
+      <FlyToLocation location={userLocation ?? null} active={!!flyToUser} />
 
       {/* Zonas críticas */}
       {zonas.map((zona) => (
@@ -124,13 +144,11 @@ export default function Map({ pedidos, zonas, onMapClick, onPedidoClick }: MapPr
             icon={getIconForEstado(pedido.estado)}
             eventHandlers={{ click: () => onPedidoClick(pedido) }}
           >
-            {/* Etiqueta permanente visible sin click */}
             {etiqueta && (
               <Tooltip permanent direction="top" offset={[0, -35]} className="volunteer-label">
                 <span className="text-xs font-semibold whitespace-nowrap">{etiqueta}</span>
               </Tooltip>
             )}
-
             <Popup>
               <div className="text-sm min-w-[200px]">
                 <div className="font-semibold text-base mb-1">{getTipoLabel(pedido.tipo)}</div>
@@ -155,6 +173,30 @@ export default function Map({ pedidos, zonas, onMapClick, onPedidoClick }: MapPr
           </Marker>
         );
       })}
+
+      {/* Mi ubicación actual */}
+      {userLocation && (
+        <>
+          <CircleMarker
+            center={[userLocation.lat, userLocation.lng]}
+            radius={12}
+            pathOptions={{
+              color: "#2563eb",
+              fillColor: "#3b82f6",
+              fillOpacity: 0.4,
+              weight: 3,
+            }}
+          />
+          <Marker position={[userLocation.lat, userLocation.lng]} icon={myLocationIcon}>
+            <Popup>
+              <div className="text-sm font-medium text-blue-700">📍 Estás aquí</div>
+            </Popup>
+            <Tooltip permanent direction="bottom" offset={[0, 15]}>
+              <span className="text-xs font-semibold text-blue-700">Mi ubicación</span>
+            </Tooltip>
+          </Marker>
+        </>
+      )}
     </MapContainer>
   );
 }
