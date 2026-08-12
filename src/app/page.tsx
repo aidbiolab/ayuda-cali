@@ -26,7 +26,7 @@ export default function HomePage() {
   const [newPedidoCoords, setNewPedidoCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
   const [showSeguir, setShowSeguir] = useState(false);
-  const [showInfo, setShowInfo] = useState(false);
+  const [showInfo, setShowInfo] = useState(true);
   const [filterEstado, setFilterEstado] = useState<string>("");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [flyToUser, setFlyToUser] = useState(false);
